@@ -1,0 +1,278 @@
+def myProject():
+
+    from tensorflow import lite
+    import tensorflow as tf
+    from tensorflow import keras
+    from tensorflow.keras import layers
+    import numpy as np
+    import pandas as pd
+    import random, os
+    import shutil
+    import matplotlib.pyplot as plt
+    from matplotlib.image import imread
+    from keras.preprocessing.image import ImageDataGenerator
+    from tensorflow.keras.metrics import categorical_accuracy
+    from sklearn.model_selection import train_test_split
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import os
+    import PIL
+    import tensorflow as tf
+
+    from keras.layers import Input
+    from keras.layers import BatchNormalization
+
+    from keras.models import Sequential
+    from keras.layers import Dense, BatchNormalization
+
+    from keras.models import Model
+    from keras.layers import Input, Conv2D, Concatenate
+    from tensorflow.keras.layers import Conv2D, MaxPooling2D, GlobalAveragePooling2D
+
+    from tensorflow import keras
+    from tensorflow.keras import layers
+    from tensorflow.keras.models import Sequential
+    import time
+
+
+    from keras.models import Sequential
+    from keras.layers import Dense, Flatten, Conv2D
+
+    import tensorflow as tf
+    import cv2
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+
+
+
+    # Add an additional column, mapping to the type
+    df = pd.read_csv(r'/content/drive/MyDrive/preproc_output_img/Preprocessing/train.csv')
+
+    diagnosis_dict_binary = {
+        0: 'No_DR',
+        1: 'DR',
+        2: 'DR',
+        3: 'DR',
+        4: 'DR'
+    }
+
+    diagnosis_dict = {
+        0: 'No_DR',
+        1: 'Mild',
+        2: 'Moderate',
+        3: 'Severe',
+        4: 'Proliferate_DR',
+    }
+
+
+    df['binary_type'] =  df['diagnosis'].map(diagnosis_dict_binary.get)
+    df['type'] = df['diagnosis'].map(diagnosis_dict.get)
+    df.head()
+
+    df['type'].value_counts().plot(kind='barh')
+    df['binary_type'].value_counts().plot(kind='barh')
+
+
+    # Split into stratified train, val, and test sets
+    train_intermediate, val = train_test_split(df, test_size = 0.15, stratify = df['type'])
+    train, test = train_test_split(train_intermediate, test_size = 0.15 / (1 - 0.15), stratify = train_intermediate['type'])
+
+    print(train['type'].value_counts(), '\n')
+    print(test['type'].value_counts(), '\n')
+    print(val['type'].value_counts(), '\n')
+
+
+    # Create working directories for train/val/test
+    base_dir = ''
+
+    train_dir = os.path.join(base_dir, 'train')
+    val_dir = os.path.join(base_dir, 'val')
+    test_dir = os.path.join(base_dir, 'test')
+
+    if os.path.exists(base_dir):
+        shutil.rmtree(base_dir)
+
+    if os.path.exists(train_dir):
+        shutil.rmtree(train_dir)
+    os.makedirs(train_dir)
+
+    if os.path.exists(val_dir):
+        shutil.rmtree(val_dir)
+    os.makedirs(val_dir)
+
+    if os.path.exists(test_dir):
+        shutil.rmtree(test_dir)
+    os.makedirs(test_dir)
+
+
+    # Copy images to respective working directory
+    src_dir = r'/content/drive/MyDrive/preproc_output_img/Preprocessing/class/classes'
+    for index, row in train.iterrows():
+        diagnosis = row['type']
+        binary_diagnosis = row['binary_type']
+        id_code = row['id_code'] + ".jpg"
+        srcfile = os.path.join(src_dir, diagnosis, id_code)
+        dstfile = os.path.join(train_dir, binary_diagnosis)
+        os.makedirs(dstfile, exist_ok = True)
+        shutil.copy(srcfile, dstfile)
+
+    for index, row in val.iterrows():
+        diagnosis = row['type']
+        binary_diagnosis = row['binary_type']
+        id_code = row['id_code'] + ".jpg"
+        srcfile = os.path.join(src_dir, diagnosis, id_code)
+        dstfile = os.path.join(val_dir, binary_diagnosis)
+        os.makedirs(dstfile, exist_ok = True)
+        shutil.copy(srcfile, dstfile)
+
+    for index, row in test.iterrows():
+        diagnosis = row['type']
+        binary_diagnosis = row['binary_type']
+        id_code = row['id_code'] + ".jpg"
+        srcfile = os.path.join(src_dir, diagnosis, id_code)
+        dstfile = os.path.join(test_dir, binary_diagnosis)
+        os.makedirs(dstfile, exist_ok = True)
+        shutil.copy(srcfile, dstfile)
+
+    # Setting up ImageDataGenerator for train/val/test
+
+    train_path = 'train'
+    val_path = 'val'
+    test_path = 'test'
+
+    train_batches = ImageDataGenerator(rescale = 1./255).flow_from_directory(train_path, target_size=(224,224), shuffle = True)
+    val_batches = ImageDataGenerator(rescale = 1./255).flow_from_directory(val_path, target_size=(224,224), shuffle = True)
+    test_batches = ImageDataGenerator(rescale = 1./255).flow_from_directory(test_path, target_size=(224,224), shuffle = False)
+
+
+
+
+
+    data_dir1=r'/content/train'
+    data_dir2=r'/content/val'
+
+
+    import pathlib
+    batch_size = 5
+    img_height = 224
+    img_width = 224
+
+    train_ds= tf.keras.preprocessing.image_dataset_from_directory(
+        data_dir1,
+        validation_split=0.2,
+        subset="training",
+        seed=123,
+        image_size=(img_height, img_width),
+        batch_size=batch_size)
+
+    val_ds= tf.keras.preprocessing.image_dataset_from_directory(
+        data_dir2,
+        validation_split=0.2,
+        subset="validation",
+        seed=123,
+        image_size=(img_height, img_width),
+        batch_size=batch_size)
+
+
+#ModifiedSqueezeNet Architecture:-)
+
+
+    # define input layer
+    inputs = Input(shape=(224,224,3,))
+
+
+    # define batch normalization layer
+    bn_layer = BatchNormalization()
+
+
+
+    # define model architecture
+    model = Sequential([
+        Dense(64, activation='relu', input_shape=(784,)),
+        BatchNormalization(),
+        Dense(10, activation='softmax')
+    ])
+
+
+
+    def fire_module(input_tensor, squeeze_filters, expand_filters):
+        squeeze = Conv2D(filters=squeeze_filters, kernel_size=1, activation='relu')(input_tensor)
+        expand_1x1 = Conv2D(filters=expand_filters, kernel_size=1, activation='relu')(squeeze)
+        expand_3x3 = Conv2D(filters=expand_filters, kernel_size=3, padding='same', activation='relu')(squeeze)
+        output_tensor = Concatenate()([expand_1x1, expand_3x3])
+        return output_tensor
+
+
+
+    input_tensor = Input(shape=(224, 224, 3))
+    x = Conv2D(filters=96, kernel_size=7, strides=2, activation='relu')(input_tensor)
+    x = MaxPooling2D(pool_size=3, strides=2)(x)
+    x = fire_module(x, 16, 64)
+    x = fire_module(x, 16, 64)
+    x = fire_module(x, 32, 128)
+    x = MaxPooling2D(pool_size=3, strides=2)(x)
+    x = fire_module(x, 32, 128)
+    x = fire_module(x, 48, 192)
+    x = fire_module(x, 48, 192)
+    x = fire_module(x, 64, 256)
+    x = MaxPooling2D(pool_size=3, strides=2)(x)
+    x = fire_module(x, 64, 256)
+    x = GlobalAveragePooling2D()(x)
+    output_tensor = Dense(units=10, activation='softmax')(x)
+
+    model = Model(inputs=input_tensor, outputs=output_tensor)
+
+
+
+    model = Sequential()
+
+    # add convolutional layer
+    model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=(224, 224, 3)))
+
+    # add flatten layer
+    model.add(Flatten())
+
+    # add fully connected layer
+    model.add(Dense(128, activation='relu'))
+
+    # add output layer
+    model.add(Dense(10, activation='softmax'))
+
+    # compile the model
+    model.compile(loss="sparse_categorical_crossentropy", optimizer='adam', metrics=['accuracy'])
+    model.summary()
+
+    history = model.fit(train_ds,
+                    epochs=1,
+                    validation_data=val_ds)
+
+    model.save('Offi.ModifiedSqueezeNet.model')
+
+    loss, acc = model.evaluate(train_ds, verbose=1)
+    print("Loss: ", loss)
+    print("Accuracy: ", acc)
+
+
+
+
+    def predict_class(path):
+        img = cv2.imread(path)
+
+        RGBImg = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+        RGBImg= cv2.resize(RGBImg,(224,224))
+        plt.imshow(RGBImg)
+        image = np.array(RGBImg) / 255.0
+        new_model = tf.keras.models.load_model("/content/Offi.ModifiedSqueezeNet.model")
+        predict=new_model.predict(np.array([image]))
+        per=np.argmax(predict,axis=1)
+        if per==1:
+            print('NO DR')
+        else:
+            print(' DR')
+
+
+    predict_class('/content/train/DR/04ac765f91a1.jpg')
+
+myProject()
